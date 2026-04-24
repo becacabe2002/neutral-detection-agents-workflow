@@ -3,21 +3,21 @@
 Implementation TODO list based on `plan.md`.
 
 ## 1) Project setup
-- [ ] Create project skeleton: `src/`, `tests/`, `scripts/`, `data/`, `db/`.
-- [ ] Add dependency management (`pyproject.toml` or `requirements.txt`).
-- [ ] Add env config template (`.env.example`) for API keys and runtime flags.
+- [x] Create project skeleton: `src/`, `tests/`, `scripts/`, `data/`.
+- [x] Add dependency management (`pyproject.toml` or `requirements.txt`).
+- [x] Add env config template (`.env.example`) for API keys and runtime flags.
 - [ ] Add basic logging and config loader (dev/prod modes).
 - [ ] Add Docker assets scaffold: `docker-compose.yml`, `Dockerfile`, `.dockerignore`.
 
 ## 2) Core data contracts
-- [ ] Implement typed models for:
-  - [ ] `Claim`
-  - [ ] `Evidence`
-  - [ ] `SourceProfile`
-  - [ ] `AgentOutput`
-  - [ ] `VerdictReport` (including `uncertainty_type` and `conflict_details`)
-- [ ] Add validation rules (required fields, enum values, score ranges).
-- [ ] Add serialization helpers for state passing between agents.
+- [x] Implement typed models for:
+  - [x] `Claim`
+  - [x] `Evidence`
+  - [x] `SourceProfile`
+  - [x] `AgentOutput`
+  - [x] `VerdictReport` (including `uncertainty_type` and `conflict_details`)
+- [x] Add validation rules (required fields, enum values, score ranges).
+- [x] Add serialization helpers for state passing between agents.
 
 ## 3) MBFC SQLite credibility registry
 - [ ] Create SQLite schema migration for MBFC source registry.
@@ -83,6 +83,7 @@ Implementation TODO list based on `plan.md`.
 ## 11) Deployment (Docker Compose + Cloudflare Tunnel)
 - [ ] Build `app` container image.
 - [ ] Add `chromadb` service with persistent volume.
+- [ ] Add `rotating-proxy` service (using `mattes/rotating-proxy`) for search IP rotation (enables high request rate).
 - [ ] Add `cloudflared` service using named tunnel token.
 - [ ] Configure internal network (keep ChromaDB private).
 - [ ] Route Cloudflare hostname to `http://app:8501`.

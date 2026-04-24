@@ -20,13 +20,13 @@ Implementation TODO list based on `plan.md`.
 - [x] Add serialization helpers for state passing between agents.
 
 ## 3) MBFC SQLite credibility registry
-- [ ] Create SQLite schema migration for MBFC source registry.
-- [ ] Build one-time import script to load MBFC JSON snapshot.
-- [ ] Add domain canonicalization utility.
-- [ ] Implement lookup service:
-  - [ ] MBFC hit -> return normalized `SourceProfile`
-  - [ ] MBFC miss -> return `rejected_unknown` (Hard Reject Policy)
-- [ ] Add indexes for fast domain lookup.
+- [x] Create SQLite schema migration for MBFC source registry.
+- [x] Build one-time import script to load MBFC JSON snapshot.
+- [x] Add domain canonicalization utility.
+- [x] Implement lookup service:
+  - [x] MBFC hit -> return normalized `SourceProfile`
+  - [x] MBFC miss -> return `rejected_unknown` (Hard Reject Policy)
+- [x] Add indexes for fast domain lookup.
 
 ## 4) Retrieval layer (ChromaDB)
 - [ ] Implement ChromaDB interface (query + upsert + metadata filters).

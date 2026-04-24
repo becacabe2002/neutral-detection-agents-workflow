@@ -39,8 +39,16 @@ Given an input message, identify verifiable claims, assess factuality using trus
 - UI: Streamlit (with conflict-comparison views).
 - Orchestration: LangGraph-style centralized state machine (implemented via LangChain ecosystem).
 - Retrieval:
-  - ChromaDB as first pass vector store,
+  - ChromaDB as first pass vector store.
+  - **Embedding Model:** `BAAI/bge-small-en-v1.5` running on **CUDA** (if available) via `sentence-transformers`.
+  - **Query Strategy:** Use BGE v1.5 specific retrieval instruction: `"Represent this sentence for searching relevant passages: "`.
   - web retrieval fallback when internal evidence is insufficient using `ddgs` (DuckDuckGo Search).
+- Transient Storage (Redis):
+  - **Purpose:** Pass large scraped text payloads between agents without bloating the LangGraph state.
+  - **Setup:** A dedicated `redis` container in Docker Compose, configured via `redis.conf` for zero persistence and `allkeys-lru` eviction.
+  - **Connection:** Managed via `REDIS_URL` in environment configuration.
+  - **TTL Policy:** All keys are set with a strict 15-minute TTL to ensure the cache remains transient.
+  - **Key Schema:** `scrape:{claim_id}:{url_hash}`.
 - Proxy Layer:
   - `mattes/rotating-proxy` container for `ddgs` to facilitate high request rates. It uses HAProxy to load-balance requests across multiple Tor instances, providing a pool of rotating exit nodes.
 - Source credibility registry:
@@ -62,14 +70,18 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
    - **Web Fallback Pipeline:** If ChromaDB is insufficient, fetch the top 10 results for each of the 5 generated queries (max 50 URLs per claim).
    - **High-Volume Search:** Use `ddgs` routed through a Tor Proxy to maintain high throughput and avoid search engine rate limits.
    - **MBFC Pre-Flight Check:** Perform immediate domain lookup against MBFC SQLite; discard any URL from an unknown or untrusted domain before scraping.
-   - **Contextual Passage Isolation:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Leverage a long-context LLM (e.g., Google's gemini-2.5-flash) to process the cleaned extracted text and isolate only the exact passages directly pertinent to the subclaim before passing them to the Ensemble Agent.
-4. Credibility and Lineage Agent
+   - **Transient Caching:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Store the raw text payload into Redis with a short TTL (e.g., 15 mins), and pass only the resulting Redis key to the LangGraph state.
+4. Passage Isolation Agent
+   - Read the raw scraped text from Redis using the key provided in the state.
+   - Leverage a long-context LLM (e.g., Google's gemini-2.5-flash) to process the cleaned extracted text and isolate only the exact passages directly pertinent to the subclaim.
+   - Output refined `Evidence` objects containing the isolated excerpt, effectively dropping the massive raw text payload.
+5. Credibility and Lineage Agent
    - Score source reliability using MBFC SQLite registry and track lineage metadata.
    - **Hard Reject Policy:** Canonicalize domains and reject evidence from sources that are:
     1. Missing from the MBFC registry.
     2. Ranked as `Low` or `Very Low` in factual reporting.
     This eliminates misinformation risk by ensuring only high-signal sources reach the Ensemble Agent.
-5. Ensemble Decision Agent
+6. Ensemble Decision Agent
    - **Strict Consensus Logic:** Performs pairwise comparison of high-credibility evidence.
    - If any two sources flatly contradict (mutually exclusive data), flags as `contradictory_evidence`.
    - **Weighted Fusion Logic:** If no hard contradictions are found, computes a final score by combining independent specialist signals:
@@ -78,7 +90,7 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
      - *Semantic Entailment:* LLM-scored alignment between evidence text and claim.
      - *Quantity:* Number of independent high-credibility domains providing supporting evidence.
    - **Fusion Calculation:** `Final Score = Σ (Signal_i * Weight_i)`. If the score is in the "gray zone" (e.g., 0.4 - 0.6), the agent defaults to `Uncertain (insufficient_evidence)`.
-6. Verification and Report Agent
+7. Verification and Report Agent
    - Validates logical consistency and citation completeness.
    - **Explainable Uncertainty Logic:** If conflict detected, preserves conflicting IDs and generates a side-by-side rationale.
    - Produces user-facing verdict report.
@@ -151,17 +163,20 @@ User input:
    - `"Country X inflation rate 2025 statistics"`, etc.
 
 4. Evidence Retrieval Agent (Hybrid)
-   - Chroma-miss -> Web fallback retrieves Source A (2%) and Source B (5%).
+   - Chroma-miss -> Web fallback retrieves Source A (2%) and Source B (5%). Scrapes text and stores in Redis with keys `scrape:A` and `scrape:B`.
 
-5. Credibility and Lineage Agent
+5. Passage Isolation Agent
+   - Fetches raw text from Redis for A and B. Extracts the exact sentences mentioning "2%" and "5%". Emits refined `Evidence` objects.
+
+6. Credibility and Lineage Agent
    - Both Source A and B are in MBFC registry -> Accepted.
 
-6. Ensemble Decision Agent (Strict Consensus)
+7. Ensemble Decision Agent (Strict Consensus)
    - Detects 2% vs 5% contradiction.
    - Flags `uncertainty_type = contradictory_evidence`.
    - Populates `conflict_details`.
 
-7. Verification and Report Agent
+8. Verification and Report Agent
    - Generates rationale: "High-credibility sources provided mutually exclusive data points."
    - Final report payload includes the comparison metadata.
 
@@ -175,11 +190,12 @@ User input:
 1. Input ingestion and claim decomposition.
 2. Verifiability filtering and claim typing.
 3. Query generation per claim.
-4. Hybrid evidence retrieval (ChromaDB-first, web fallback).
-5. Source credibility filtering (MBFC Hard Reject).
-6. Ensemble verdict computation (Strict Consensus logic).
-7. Final verification and report synthesis (Conflict explanations).
-8. Deployment orchestration (Docker + Cloudflare).
+4. Hybrid evidence retrieval (ChromaDB-first, web fallback using `ddgs`) and Redis caching.
+5. Contextual passage isolation (LLM extraction from Redis cache).
+6. Source credibility filtering (MBFC Hard Reject).
+7. Ensemble verdict computation (Strict Consensus logic).
+8. Final verification and report synthesis (Conflict explanations).
+9. Deployment orchestration (Docker + Cloudflare).
 
 ## 7) Success Criteria
 ### Quality
@@ -199,24 +215,29 @@ User input:
 ## 9) Assumptions and Defaults
 - MBFC SQLite is the source of truth for "High Credibility."
 - Unknown domains are hard rejected to prioritize safety over recall.
+- **Vector Store:** ChromaDB uses Cosine similarity with BGE-small-en-v1.5 embeddings.
+- **Hardware:** System defaults to CUDA for embedding generation if a compatible GPU is detected.
 - Deployment uses single-host Docker Compose and Cloudflare Tunnel.
 
 ## 10) Deployment Architecture
 - `app`: Streamlit + Orchestrator.
 - `chromadb`: Private vector store.
+- `redis`: Transient key-value store for passing scraped HTML between agents.
+- **GPU Acceleration:** Requires NVIDIA Container Toolkit and `nvidia` driver reservation in Compose.
 - `tor-proxy`: Tor-based HTTP proxy for rotating outgoing search IPs.
 - `cloudflared`: Public ingress only to `app:8501`.
 - Volumes for `chroma_data` and `mbfc_data`.
 
-## 11) Recommended Project Structure
+## 11) Project Structure
 The project should follow a standard Python package layout to separate orchestration, data models, and agent logic:
 
 ```text
 neutral-detection-agents-workflow/
-├── .env.example                 # Template for API keys and config (OpenAI, Gemini, Tavily, etc.)
-├── docker-compose.yml           # Runs app, chromadb, and cloudflared
+├── .env.example                 # Template for API keys and config (OpenAI, Gemini, DDGS_PROXY, etc.)
+├── redis.conf                   # Redis configuration for transient caching
+├── docker-compose.yml           # Runs app, chromadb, redis, and cloudflared
 ├── Dockerfile                   # Builds the main Streamlit/LangChain app
-├── pyproject.toml               # Python dependencies
+├── pyproject.toml               # Python dependencies (needs 'redis' added)
 ├── README.md
 ├── plan.md
 │
@@ -245,14 +266,16 @@ neutral-detection-agents-workflow/
     │   ├── __init__.py
     │   ├── mbfc_registry.py     # SQLite connection and domain lookup logic
     │   ├── chroma_store.py      # ChromaDB connection, upsert, and query logic
-    │   ├── web_search.py        # Web search API integration (e.g., Tavily/Google)
-    │   └── web_scraper.py       # BeautifulSoup extraction logic
+    │   ├── web_search.py        # Web search integration (DuckDuckGo via Tor)
+    │   ├── web_scraper.py       # BeautifulSoup extraction logic
+    │   └── redis_cache.py       # Redis connection and transient caching logic
     │
     ├── agents/                  # Individual Agent Implementations
     │   ├── __init__.py
     │   ├── claim_decomposition.py
     │   ├── query_generation.py  # SEO-optimized query logic
-    │   ├── evidence_retrieval.py# Chroma query + Web scrape + gemini-2.5-flash passage isolation
+    │   ├── evidence_retrieval.py# Chroma query + Web scrape + Redis caching
+    │   ├── passage_isolation.py # Reads Redis + gemini-2.5-flash extraction
     │   ├── credibility.py       # MBFC Hard Reject scoring logic
     │   ├── ensemble_decision.py # Strict Consensus & Weighted Fusion logic
     │   └── verification.py      # Rationale generation and Explainable Uncertainty

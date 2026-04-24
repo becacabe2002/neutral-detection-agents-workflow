@@ -37,8 +37,8 @@ Implementation TODO list based on `plan.md`.
 
 ## 5) Agent implementations
 - [ ] Claim Decomposition Agent (atomic claims + verifiability filter).
-- [ ] Query Generation Agent (3-4 targeted queries per claim).
-- [ ] Evidence Retrieval Agent (DB-first + web fallback).
+- [ ] Query Generation Agent (5 SEO-optimized targeted queries per claim).
+- [ ] Evidence Retrieval Agent (DB-first + web fallback, top 10 results, Contextual Passage Isolation using Gemini 2.5 Flash Lite).
 - [ ] Credibility and Lineage Agent (MBFC Hard Reject scoring).
 - [ ] Ensemble Decision Agent (Strict Consensus: pairwise contradiction check).
 - [ ] Verification and Report Agent (Logic/citation consistency + explainable uncertainty generation).

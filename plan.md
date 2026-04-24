@@ -53,17 +53,25 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
    - Split input into atomic subclaims.
    - Filter verifiable vs non-verifiable statements.
 2. Query Generation Agent
-   - Generate 3-4 high-intent search queries per verifiable subclaim.
+   - Generate 5 highly targeted, SEO-optimized search queries per verifiable subclaim.
+   - **SEO Strategies:** Prioritize keyword density (entities + metrics + dates) over natural language; utilize search operators (exact match quotes, `OR` logic); employ intent-based stratification (Official, News reporting, Debunking, Contextual).
 3. Evidence Retrieval Agent
    - Query ChromaDB first.
-   - Trigger web retrieval fallback only if ChromaDB evidence is insufficient.
+   - **Web Fallback Pipeline:** If ChromaDB is insufficient, fetch the top 10 results for each of the 5 generated queries (max 50 URLs per claim).
+   - **MBFC Pre-Flight Check:** Perform immediate domain lookup against MBFC SQLite; discard any URL from an unknown or untrusted domain before scraping.
+   - **Contextual Passage Isolation:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Leverage a long-context LLM (e.g., Google's Gemini 2.5 Flash Lite) to process the cleaned extracted text and isolate only the exact passages directly pertinent to the subclaim before passing them to the Ensemble Agent.
 4. Credibility and Lineage Agent
    - Score source reliability using MBFC SQLite registry and track lineage metadata.
    - **Hard Reject Policy:** Canonicalize domains and reject evidence from sources missing in MBFC registry to eliminate misinformation risk.
 5. Ensemble Decision Agent
    - **Strict Consensus Logic:** Performs pairwise comparison of high-credibility evidence.
    - If any two sources flatly contradict (mutually exclusive data), flags as `contradictory_evidence`.
-   - Otherwise, combines signals via weighted fusion.
+   - **Weighted Fusion Logic:** If no hard contradictions are found, computes a final score by combining independent specialist signals:
+     - *Source Reliability:* Based on MBFC "Factual Reporting" scores.
+     - *Recency:* Decay-weighted based on publication date vs. claim context.
+     - *Semantic Entailment:* LLM-scored alignment between evidence text and claim.
+     - *Quantity:* Number of independent high-credibility domains providing supporting evidence.
+   - **Fusion Calculation:** `Final Score = Σ (Signal_i * Weight_i)`. If the score is in the "gray zone" (e.g., 0.4 - 0.6), the agent defaults to `Uncertain (insufficient_evidence)`.
 6. Verification and Report Agent
    - Validates logical consistency and citation completeness.
    - **Explainable Uncertainty Logic:** If conflict detected, preserves conflicting IDs and generates a side-by-side rationale.

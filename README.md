@@ -1,4 +1,4 @@
-# Neutral Detection Agents Workflow
+# Agentic System for Information Neutrality and Turthfulness Detection
 
 Implementation TODO list based on `plan.md`.
 

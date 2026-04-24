@@ -28,12 +28,22 @@ Implementation TODO list based on `plan.md`.
   - [x] MBFC miss -> return `rejected_unknown` (Hard Reject Policy)
 - [x] Add indexes for fast domain lookup.
 
-## 4) Retrieval layer (ChromaDB)
-- [ ] Implement ChromaDB interface (query + upsert + metadata filters).
-- [ ] Implement web retrieval fallback pipeline.
-- [ ] Add retrieval threshold logic.
-- [ ] Normalize retrieved evidence to canonical `Evidence` objects.
-- [ ] Enforce write-back rule: upsert to ChromaDB only after credibility + verification pass.
+## 4) Retrieval layer (ChromaDB & Web Fallback)
+- [ ] **ChromaDB Service (`src/services/chroma_store.py`)**
+  - [ ] Initialize client with persistent storage path.
+  - [ ] Implement vector search with metadata filtering (e.g., filter by `source_domain`).
+  - [ ] Implement `upsert_evidence` with `VectorRecordMetadata` schema.
+- [ ] **Web Search Service (`src/services/web_search.py`)**
+  - [ ] Integrate `duckduckgo_search` (`ddgs`) with `rotating-proxy` (Tor) support.
+  - [ ] Implement query batching for the 5 SEO-optimized queries.
+- [ ] **Scraping & Isolation Service (`src/services/web_scraper.py`)**
+  - [ ] Build BeautifulSoup parser to extract clean text from URLs.
+  - [ ] Implement **Contextual Passage Isolation** node using `gemini-2.5-flash`.
+- [ ] **MBFC Pre-Flight Logic**
+  - [ ] Integrate `mbfc_registry.py` into the retrieval pipeline to drop URLs from untrusted/unknown domains *before* scraping.
+- [ ] **Normalization & Write-back**
+  - [ ] Map all raw results to the canonical `Evidence` Pydantic model.
+  - [ ] Implement "Verification Gate" check before allowing upserts to ChromaDB.
 
 ## 5) Agent implementations
 - [ ] Claim Decomposition Agent (atomic claims + verifiability filter).

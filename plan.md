@@ -62,7 +62,7 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
    - **Web Fallback Pipeline:** If ChromaDB is insufficient, fetch the top 10 results for each of the 5 generated queries (max 50 URLs per claim).
    - **High-Volume Search:** Use `ddgs` routed through a Tor Proxy to maintain high throughput and avoid search engine rate limits.
    - **MBFC Pre-Flight Check:** Perform immediate domain lookup against MBFC SQLite; discard any URL from an unknown or untrusted domain before scraping.
-   - **Contextual Passage Isolation:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Leverage a long-context LLM (e.g., Google's Gemini 2.5 Flash Lite) to process the cleaned extracted text and isolate only the exact passages directly pertinent to the subclaim before passing them to the Ensemble Agent.
+   - **Contextual Passage Isolation:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Leverage a long-context LLM (e.g., Google's gemini-2.5-flash) to process the cleaned extracted text and isolate only the exact passages directly pertinent to the subclaim before passing them to the Ensemble Agent.
 4. Credibility and Lineage Agent
    - Score source reliability using MBFC SQLite registry and track lineage metadata.
    - **Hard Reject Policy:** Canonicalize domains and reject evidence from sources that are:
@@ -252,7 +252,7 @@ neutral-detection-agents-workflow/
     │   ├── __init__.py
     │   ├── claim_decomposition.py
     │   ├── query_generation.py  # SEO-optimized query logic
-    │   ├── evidence_retrieval.py# Chroma query + Web scrape + Gemini 2.5 Flash passage isolation
+    │   ├── evidence_retrieval.py# Chroma query + Web scrape + gemini-2.5-flash passage isolation
     │   ├── credibility.py       # MBFC Hard Reject scoring logic
     │   ├── ensemble_decision.py # Strict Consensus & Weighted Fusion logic
     │   └── verification.py      # Rationale generation and Explainable Uncertainty

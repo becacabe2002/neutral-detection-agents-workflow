@@ -3,3 +3,5 @@ ideas.md
 GEMINI.md
 .env
 src/neutral_detection_agents_workflow.egg-info/
+__pycache__/
+data/mbfc.sqlite

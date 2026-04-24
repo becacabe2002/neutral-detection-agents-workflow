@@ -12,7 +12,9 @@ dependencies = [
     "langgraph>=1.1.9",
     "pandas>=3.0.2",
     "pydantic>=2.13.3",
+    "redis>=7.4.0",
     "requests>=2.33.1",
+    "sentence-transformers>=5.4.1",
     "streamlit>=1.56.0",
 ]
 

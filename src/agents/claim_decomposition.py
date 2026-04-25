@@ -1,8 +1,7 @@
 import hashlib
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from src.agents.base import BaseAgent
 from src.models.claim import Claim, ClaimType
 from src.config import settings
 
@@ -33,14 +32,14 @@ Follow these rules:
 DO NOT GENERATE IDs. Focus on the claim text and metadata.
 """
 
-class ClaimDecompositionAgent:
+class ClaimDecompositionAgent(BaseAgent):
     def __init__(self, model: str = settings.DEFAULT_LLM_MODEL):
-        self.llm = ChatOpenAI(
-            model=model,
-            api_key= settings.OPENAI_API_KEY,
-            temperature=0
-        ).with_structured_output(ClaimDecompositionOuput)
+        super().__init__(
+            model_name=model, 
+            structured_output=ClaimDecompositionOuput
+        )
         
+        from langchain_core.prompts import ChatPromptTemplate
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("user", "{input_text}")
@@ -56,10 +55,11 @@ class ClaimDecompositionAgent:
         clean_text = text.lower().strip()
         return hashlib.sha256(clean_text.encode()).hexdigest()[:16]
     
-    async def run(self, input_text: str) -> List[Claim]:
+    async def run(self, input_text: str, trace_id: str = "N/A") -> List[Claim]:
         """
         Decompose input_text into atomic claims and assigns deterministic IDs.
         """
+        logger = self.get_logger(trace_id)
         try:
             result: ClaimDecompositionOuput = await self.chain.ainvoke({"input_text": input_text})
 
@@ -76,7 +76,7 @@ class ClaimDecompositionAgent:
                 ))
             return final_claims
         except Exception as e:
-            print(f"Error in ClaimDecompositionAgent: {e}")
+            logger.error(f"Error in ClaimDecompositionAgent: {e}")
             fallback_id = self._generate_id(input_text)
             return [Claim(
                 id=fallback_id,

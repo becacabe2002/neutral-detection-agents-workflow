@@ -1,7 +1,6 @@
-from typing import List, Dict
+from typing import List
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from src.agents.base import BaseAgent
 from src.config import settings
 
 class QueryList(BaseModel):
@@ -16,14 +15,15 @@ SEO strategies:
 - Create a mix of intent: Official stats, news reporting, and debunking/fact-check queries.
 """
 
-class QueryGenerationAgent:
+class QueryGenerationAgent(BaseAgent):
     def __init__(self, model: str = settings.DEFAULT_LLM_MODEL):
-        self.llm = ChatOpenAI(
-            model=model,
-            api_key=settings.OPENAI_API_KEY,
-            temperature=0.2
-        ).with_structured_output(QueryList)
+        super().__init__(
+            model_name=model,
+            temperature=0.2,
+            structured_output=QueryList
+        )
 
+        from langchain_core.prompts import ChatPromptTemplate
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("user", "Generate search queries for this claim: {claim_text}")

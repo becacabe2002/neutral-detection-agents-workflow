@@ -1,7 +1,6 @@
 from typing import List
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from src.agents.base import BaseAgent
 from src.models.claim import Claim
 from src.models.evidence import Evidence, FactualReporting
 from src.config import settings
@@ -18,14 +17,15 @@ Score how directly the excerpt addresses the claim (either by supporting it OR r
 - 0.0: Totally irrelevant to the factual content of the claim.
 """
 
-class CredibilityAgent: 
+class CredibilityAgent(BaseAgent): 
     def __init__(self, model: str = settings.DEFAULT_LLM_MODEL):
-        self.llm = ChatOpenAI(
-            model=model,
-            api_key=settings.OPENAI_API_KEY,
-            temperature=0.2
-        ).with_structured_output(EntailmentScore)
+        super().__init__(
+            model_name=model,
+            temperature=0.2,
+            structured_output=EntailmentScore
+        )
 
+        from langchain_core.prompts import ChatPromptTemplate
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("user", "CLAIM: {claim}\nEXCERPT: {excerpt}")

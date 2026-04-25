@@ -1,19 +1,13 @@
 from typing import List, Dict, Tuple
-from src.services.web_search import WebSearchService
-from src.services.web_scraper import WebScraper
-from src.services.mbfc_registry import MBFCRegistry
-from src.services.redis_cache import RedisCache
-from src.services.chroma_store import ChromaStore
+from src.agents.base import BaseAgent
 from src.models.evidence import Evidence
 from src.config import settings
 
-class EvidenceRetrievalAgent:
+class EvidenceRetrievalAgent(BaseAgent):
     def __init__(self):
-        self.search_service = WebSearchService()
-        self.scraper = WebScraper()
-        self.cache = RedisCache()
-        self.mbfc = MBFCRegistry()
-        self.chroma = ChromaStore()
+        # Initialize the base class. 
+        # Note: This agent doesn't use an LLM directly, but inherits service access.
+        super().__init__()
 
     async def run(self, claim_id: str, queries: List[str], claim_text: str) -> Tuple[List[dict], List[Evidence]]:
         """

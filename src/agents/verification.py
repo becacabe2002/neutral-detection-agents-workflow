@@ -1,7 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from src.agents.base import BaseAgent
 from src.models.report import VerdictReport, Verdict, UncertaintyType
 from src.models.evidence import Evidence
 from src.models.claim import Claim
@@ -21,14 +20,15 @@ You are a Final Verification Agent. Your goal is to synthesize the findings from
 - CRITICAL: Never use your own internal knowledge to confirm, deny, or explain the claim if the verdict is 'Uncertain' due to 'insufficient_evidence'. In such cases, your rationale must only describe the failure to find credible evidence. Do not provide facts about the claim that are not present in the citations.
 """
 
-class VerificationAgent:
+class VerificationAgent(BaseAgent):
     def __init__(self, model: str = settings.DEFAULT_LLM_MODEL):
-        self.llm = ChatOpenAI(
-            model=model,
-            api_key=settings.OPENAI_API_KEY,
-            temperature=0.2
-        ).with_structured_output(VerificationAnalysis)
+        super().__init__(
+            model_name=model,
+            temperature=0.2,
+            structured_output=VerificationAnalysis
+        )
 
+        from langchain_core.prompts import ChatPromptTemplate
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("user", "CLAIM: {claim_text}\nVERDICT: {verdict}\nPRELIMINARY RATIONALE: {rationale}\nUNCERTAINTY TYPE: {uncertainty}\nCITATIONS:\n{citations_text}")

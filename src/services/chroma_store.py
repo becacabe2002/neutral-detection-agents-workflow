@@ -51,16 +51,35 @@ class ChromaStore:
             }]
         )
 
-    def search_relevant(self, query: str, n_results: int = 5) -> Dict[str, Any]:
+    def search_relevant(self, query: str, n_results: int = 5, distance_threshold: float = 0.35) -> Dict[str, Any]:
         """
-        Performs a semantic search 
+        Performs a semantic search with a distance threshold filter.
+        In Cosine space, lower distance means higher similarity (0.0 = identical).
         """
         # BGE instruction
         formatted_query = f"{settings.RETRIEVAL_INSTRUCTION}{query}"
-        return self.collection.query(
+        results = self.collection.query(
             query_texts=[formatted_query],
             n_results=n_results
         )
+
+        # Filter results by distance threshold
+        filtered_results = {
+            "ids": [[]],
+            "distances": [[]],
+            "metadatas": [[]],
+            "documents": [[]]
+        }
+
+        if results.get("distances"):
+            for i, distance in enumerate(results["distances"][0]):
+                if distance <= distance_threshold:
+                    filtered_results["ids"][0].append(results["ids"][0][i])
+                    filtered_results["distances"][0].append(distance)
+                    filtered_results["metadatas"][0].append(results["metadatas"][0][i])
+                    filtered_results["documents"][0].append(results["documents"][0][i])
+        
+        return filtered_results
     
     def delete_by_claim(self, claim_id: str):
         """

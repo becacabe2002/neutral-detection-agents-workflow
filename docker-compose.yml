@@ -54,6 +54,8 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: fact-checker-tunnel
+    profiles:
+      - tunnel
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}

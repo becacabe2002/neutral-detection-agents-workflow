@@ -21,7 +21,7 @@ def canonicalize_domain(url_or_domain: str) -> str:
     try:
         parsed = urlparse(processed_str)
         domain = parsed.netloc or parsed.path
-        domain = re.sub(r'^wwww\.',  '', domain.lower())
+        domain = re.sub(r'^www\.',  '', domain.lower())
         # remove port
         domain = domain.split(':')[0]
         return domain.strip()

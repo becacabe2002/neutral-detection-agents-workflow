@@ -1,0 +1,31 @@
+import os
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Settings(BaseSettings):
+    MBFC_DB_PATH: str = os.getenv("MBFC_SQLITE_PATH", "data/mbfc.sqlite")
+
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_TTL: int = 900
+
+    CHROMA_PATH: str = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
+    CHROMA_HOST: str = os.getenv("CHROMA_SERVER_HOST", "chromadb")
+    CHROMA_PORT: int = int(os.getenv("CHROMA_SERVER_PORT", "8000"))
+
+    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
+    RETRIEVAL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "
+
+    TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
+    MAX_SEARCH_RESULTS: int = 5
+    MAX_QUERIES_PER_CLAIMS: int = 3
+
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+
+    # Default Models
+    DEFAULT_LLM_MODEL: str = "gpt-4.1-mini"
+    ISOLATION_MODEL: str = "gemini-2.5-flash-lite"
+
+settings = Settings()

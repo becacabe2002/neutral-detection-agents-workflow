@@ -13,4 +13,4 @@ class Claim(BaseModel):
     text: str = Field(..., min_length=5, description="The raw text of the claim")
     type: ClaimType = Field(default=ClaimType.ATOMIC)
     verifiable: bool = Field(..., description="True if the claim can be objectively checked")
-    timestamp_context: Optional[datetime] = Field(None, description="The time period the claim refers to (ex: 'in 2025')")
+    timestamp_context: Optional[str] = Field(None, description="The time period the claim refers to (ex: 'in 2025', 'during the pandemic')")

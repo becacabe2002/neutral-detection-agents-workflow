@@ -4,13 +4,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 class BiasClassification(str, Enum):
-    EXTREME_LEFT = "Extreme Left Bias"
-    LEFT = "Left Bias"
-    LEFT_CENTER = "Left-Center Bias"
+    EXTREME_LEFT = "Extreme Left"
+    LEFT = "Left"
+    LEFT_CENTER = "Left-Center"
     LEAST_BIASED = "Least Biased"
-    RIGHT_CENTER = "Right-Center Bias"
-    RIGHT = "Right Bias"
-    EXTREME_RIGHT = "Extreme Right Bias"
+    RIGHT_CENTER = "Right-Center"
+    RIGHT = "Right"
+    EXTREME_RIGHT = "Extreme Right"
+    QUESTIONABLE = "Questionable"
+    CONSPIRACY_PSEUDOSCIENCE = "Conspiracy-Pseudoscience"
+    PRO_SCIENCE = "Pro-Science"
+    SATIRE = "Satire"
+    NA = "N/A"
 
 class FactualReporting(str, Enum):
     VERY_HIGH = "Very High"
@@ -19,11 +24,13 @@ class FactualReporting(str, Enum):
     MIXED = "Mixed"
     LOW = "Low"
     VERY_LOW = "Very Low"
+    NA = "N/A"
 
 class CredibilityRating(str, Enum):
     HIGH = "High"
     MEDIUM = "Medium"
     LOW = "Low"
+    NA = "N/A"
 
 class SourceProfile(BaseModel):
     domain: str = Field(..., description="Canonical domain (ex: nytimes.com)")
@@ -62,8 +69,15 @@ class Evidence(BaseModel):
     def factual_weight(self) -> float:
         weights = {
             FactualReporting.VERY_HIGH: 1.0,
-            FactualReporting.HIGH: 0.8,
-            FactualReporting.MOSTLY_FACTUAL: 0.6,
-            FactualReporting.MIXED: 0.4,
+            FactualReporting.HIGH: 0.9,
+            FactualReporting.MOSTLY_FACTUAL: 0.7,
+            FactualReporting.MIXED: 0.5,
         }
         return weights.get(self.source_profile.factual_reporting, 0.0)
+
+    @property
+    def unique_id(self) -> str:
+        import hashlib
+        # Hash URL and excerpt to identify identical evidence
+        base = f"{str(self.source_url).lower()}_{self.excerpt.lower()}"
+        return hashlib.md5(base.encode()).hexdigest()

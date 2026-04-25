@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     REDIS_TTL: int = 900
 
     CHROMA_PATH: str = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
+    CHROMA_HOST: str = os.getenv("CHROMA_SERVER_HOST", "chromadb")
+    CHROMA_PORT: int = int(os.getenv("CHROMA_SERVER_PORT", "8000"))
 
     EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     RETRIEVAL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "

@@ -22,8 +22,8 @@ class BGEEmbedingFunction:
         
 
 class ChromaStore:
-    def __init__(self, path: str = settings.CHROMA_PATH):
-        self.client = chromadb.PersistentClient(path=path)
+    def __init__(self, host: str = settings.CHROMA_HOST, port: int = settings.CHROMA_PORT):
+        self.client = chromadb.HttpClient(host=host, port=port)
 
         # Setup embedding function
         self.embedding_fn = BGEEmbedingFunction()

@@ -111,10 +111,17 @@ async def score_credibility_node(state: WorkflowState):
     if tasks:
         results = await asyncio.gather(*tasks)
         for (claim, cached), newly_scored in zip(claims_with_new_evidence, results):
-            logger.info(f"Claim {claim.id}: Finished scoring. Total evidence count: {len(cached) + len(newly_scored)}")
-            updated_evidences_map[claim.id] = cached + newly_scored
+            all_evs = cached + newly_scored
+            # Deduplicate by unique_id
+            unique_evs = {e.unique_id: e for e in all_evs}.values()
+            logger.info(f"Claim {claim.id}: Finished scoring. Total unique evidence count: {len(unique_evs)}")
+            updated_evidences_map[claim.id] = list(unique_evs)
     else:
         logger.info("No new passages to score")
+        # Deduplicate existing cached evidences just in case
+        for claim_id, evs in updated_evidences_map.items():
+            unique_evs = {e.unique_id: e for e in evs}.values()
+            updated_evidences_map[claim_id] = list(unique_evs)
             
     return {"evidences": updated_evidences_map}
 

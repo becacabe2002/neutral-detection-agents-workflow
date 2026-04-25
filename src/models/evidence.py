@@ -67,3 +67,10 @@ class Evidence(BaseModel):
             FactualReporting.MIXED: 0.5,
         }
         return weights.get(self.source_profile.factual_reporting, 0.0)
+
+    @property
+    def unique_id(self) -> str:
+        import hashlib
+        # Hash URL and excerpt to identify identical evidence
+        base = f"{str(self.source_url).lower()}_{self.excerpt.lower()}"
+        return hashlib.md5(base.encode()).hexdigest()

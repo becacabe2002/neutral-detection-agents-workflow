@@ -42,7 +42,7 @@ def format_evidence_table(evidences: list[Evidence]):
             "Credibility": f"{ev.credibility_score:.2f}",
             "Factual Reporting": ev.source_profile.factual_reporting.value,
             "Bias": ev.source_profile.bias_classification.value,
-            "URL": ev.source_url
+            "URL": str(ev.source_url)
         })
     return pd.DataFrame(data)
 
@@ -131,7 +131,7 @@ if st.button("Analyze Factuality", type="primary"):
                 if ev_list:
                     st.markdown("**Citations:**")
                     df = format_evidence_table(ev_list)
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(df, width='stretch', hide_index=True)
                     
                     for ev in ev_list:
                         with st.popover(f"Excerpt from {ev.source_domain}"):

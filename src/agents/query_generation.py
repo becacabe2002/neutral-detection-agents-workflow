@@ -26,7 +26,7 @@ class QueryGenerationAgent:
 
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
-            ("user", "Generate 5 search queries for this claim: {claim_text}")
+            ("user", "Generate search queries for this claim: {claim_text}")
         ])
 
         self.chain = self.prompt | self.llm

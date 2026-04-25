@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     RETRIEVAL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "
 
-    DDGS_PROXY: str = os.getenv("DDGS_PROXY", "http://localhost:5566") # rotating tor proxy
-    MAX_SEARCH_RESULTS: int = 10
-    MAX_QUERIES_PER_CLAIMS: int = 5
+    TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
+    MAX_SEARCH_RESULTS: int = 3
+    MAX_QUERIES_PER_CLAIMS: int = 2
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")

@@ -15,9 +15,10 @@ class VerificationAnalysis(BaseModel):
 SYSTEM_PROMPT = """
 You are a Final Verification Agent. Your goal is to synthesize the findings from multiple agents into a coherent report.
 - Review the CLAIM, the CITATIONS, and the PRELIMINARY RATIONALE.
-- Ensure the Rationale is clear, neutral, and directly references the evidence.
+- Ensure the Rationale is clear, neutral, and directly references the provided evidence.
 - If the verdict is 'Not Supported', try to provide a 'Correction' based on the provided citations.
 - If the verdict is 'Uncertain', clearly explain why (e.g., conflicting evidence vs. missing data).
+- CRITICAL: Never use your own internal knowledge to confirm, deny, or explain the claim if the verdict is 'Uncertain' due to 'insufficient_evidence'. In such cases, your rationale must only describe the failure to find credible evidence. Do not provide facts about the claim that are not present in the citations.
 """
 
 class VerificationAgent:

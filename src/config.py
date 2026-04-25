@@ -19,4 +19,11 @@ class Settings(BaseSettings):
     MAX_SEARCH_RESULTS: int = 10
     MAX_QUERIES_PER_CLAIMS: int = 5
 
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+
+    # Default Models
+    DEFAULT_LLM_MODEL: str = "gpt-4.1-mini"
+    ISOLATION_MODEL: str = "gemini-2.5-flash-lite"
+
 settings = Settings()

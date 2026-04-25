@@ -31,13 +31,13 @@ Implementation TODO list based on `plan.md`.
 - [ ] **Normalization & Write-back**: Map to `Evidence` model and perform "Verification Gate" check.
 
 ## 5) Agent implementations (`src/agents/`)
-- [ ] Claim Decomposition Agent
-- [ ] Query Generation Agent
-- [ ] Evidence Retrieval Agent
-- [ ] Passage Isolation Agent
-- [ ] Credibility and Lineage Agent
-- [ ] Ensemble Decision Agent
-- [ ] Verification and Report Agent
+- [x] Claim Decomposition Agent
+- [x] Query Generation Agent
+- [x] Evidence Retrieval Agent
+- [x] Passage Isolation Agent
+- [x] Credibility and Lineage Agent
+- [x] Ensemble Decision Agent
+- [x] Verification and Report Agent
 
 ## 6) Orchestration (`src/workflow/`)
 - [x] Implement `state.py` (LangGraph state) and `graph.py` (nodes/edges).

@@ -40,7 +40,7 @@ Implementation TODO list based on `plan.md`.
 - [ ] Verification and Report Agent
 
 ## 6) Orchestration (`src/workflow/`)
-- [ ] Implement `state.py` (LangGraph state) and `graph.py` (nodes/edges).
+- [x] Implement `state.py` (LangGraph state) and `graph.py` (nodes/edges).
 - [ ] Add quality gates: Citation, Contradiction, Confidence thresholds.
 - [ ] Add workflow-level trace IDs.
 

@@ -4,13 +4,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 class BiasClassification(str, Enum):
-    EXTREME_LEFT = "Extreme Left Bias"
-    LEFT = "Left Bias"
-    LEFT_CENTER = "Left-Center Bias"
+    EXTREME_LEFT = "Extreme Left"
+    LEFT = "Left"
+    LEFT_CENTER = "Left-Center"
     LEAST_BIASED = "Least Biased"
-    RIGHT_CENTER = "Right-Center Bias"
-    RIGHT = "Right Bias"
-    EXTREME_RIGHT = "Extreme Right Bias"
+    RIGHT_CENTER = "Right-Center"
+    RIGHT = "Right"
+    EXTREME_RIGHT = "Extreme Right"
+    QUESTIONABLE = "Questionable"
+    CONSPIRACY_PSEUDOSCIENCE = "Conspiracy-Pseudoscience"
+    PRO_SCIENCE = "Pro-Science"
+    SATIRE = "Satire"
+    NA = "N/A"
 
 class FactualReporting(str, Enum):
     VERY_HIGH = "Very High"
@@ -19,11 +24,13 @@ class FactualReporting(str, Enum):
     MIXED = "Mixed"
     LOW = "Low"
     VERY_LOW = "Very Low"
+    NA = "N/A"
 
 class CredibilityRating(str, Enum):
     HIGH = "High"
     MEDIUM = "Medium"
     LOW = "Low"
+    NA = "N/A"
 
 class SourceProfile(BaseModel):
     domain: str = Field(..., description="Canonical domain (ex: nytimes.com)")

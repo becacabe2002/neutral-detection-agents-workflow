@@ -138,7 +138,7 @@ async def persist_evidence_node(state: WorkflowState):
                 persisted_count += 1
     
     logger.info(f"Persisted {persisted_count} new high-quality evidences")
-    return state
+    return {}
 
 async def ensemble_decision_node(state: WorkflowState):
     """Reach ensemble verdicts."""

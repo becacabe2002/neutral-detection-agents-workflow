@@ -51,6 +51,14 @@ def run_import():
     count = 0
     skipped = 0
 
+    # Fix known typos in source data
+    BIAS_FIXES = {
+        "Conspiracy-Pseudscience": "Conspiracy-Pseudoscience",
+    }
+    CREDIBILITY_FIXES = {
+        "Medum": "Medium",
+    }
+
     for item in data:
         raw_url = item.get("Source URL", "")
 
@@ -63,14 +71,28 @@ def run_import():
             skipped += 1
             continue
 
+        def normalize_field(field_name):
+            val = item.get(field_name)
+            if val is None or (isinstance(val, str) and not val.strip()):
+                return "N/A"
+            return str(val).strip()
+
+        bias = normalize_field("Bias")
+        bias = BIAS_FIXES.get(bias, bias)
+
+        credibility = normalize_field("Credibility")
+        credibility = CREDIBILITY_FIXES.get(credibility, credibility)
+
+        factual = normalize_field("Factual Reporting")
+
         try:
             cursor.execute("""
                 INSERT OR REPLACE INTO sources (domain, name, bias, factual_reporting, credibility, country, media_type, mbfc_url, mbfc_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (domain, 
                  item.get("Source"),
-                 item.get("Bias"),
-                 item.get("Factual Reporting"),
-                 item.get("Credibility"),
+                 bias,
+                 factual,
+                 credibility,
                  item.get("Country"),
                  item.get("Media Type"),
                  item.get("MBFC URL"),

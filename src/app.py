@@ -121,7 +121,7 @@ if st.button("Analyze Factuality", type="primary"):
                 # Conflict Comparison View
                 if verdict.uncertainty_type.value == "contradictory_evidence" and verdict.conflict_details:
                     st.subheader("⚖️ Conflict Comparison")
-                    st.write(verdict.conflict_details.get("primary_contradiction", "Multiple sources provide conflicting data."))
+                    st.write(verdict.conflict_details.primary_contradiction or "Multiple sources provide conflicting data.")
                     
                     # Display conflicting IDs if available (Logic would map them to evidence list)
                     # For MVP, we show all evidence and highlight conflicts in rationale

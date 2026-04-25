@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     RETRIEVAL_INSTRUCTION: str = "Represent this sentence for searching relevant passages: "
 
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
-    MAX_SEARCH_RESULTS: int = 3
-    MAX_QUERIES_PER_CLAIMS: int = 2
+    MAX_SEARCH_RESULTS: int = 5
+    MAX_QUERIES_PER_CLAIMS: int = 3
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")

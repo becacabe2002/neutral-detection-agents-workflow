@@ -50,7 +50,7 @@ class Evidence(BaseModel):
     # Source reliability + Recency + Semantic Entailment
     credibility_score: float = Field(..., ge=0.0, le=1.0)
     # Isolated pertinent passage
-    excerpt: str = Field(..., min_length=10)
+    excerpt: str = Field(..., min_length=3)
     source_profile: SourceProfile = Field(..., description="Mandatory for validated evidence")
     # metadata dict
     lineage: Dict[str, Any] = Field(default_factory=dict)

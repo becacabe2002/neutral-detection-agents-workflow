@@ -4,6 +4,10 @@ from src.models.claim import Claim
 from src.models.evidence import Evidence
 from src.models.report import VerdictReport
 
+class ScrapeArtifact(TypedDict):
+    url: str
+    redis_key: str
+
 class WorkflowState(TypedDict):
     """
     Central state object for the LangGraph workflow
@@ -17,7 +21,7 @@ class WorkflowState(TypedDict):
     queries: Dict[str, List[str]]
 
     # map claim id -> redis keys of raw scraped text
-    raw_evidence_keys: Dict[str, List[str]]
+    raw_evidence_keys: Dict[str, List[ScrapeArtifact]]
 
     # map claim id -> list of refined Evidence objects
     evidences: Dict[str, List[Evidence]]

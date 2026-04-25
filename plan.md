@@ -86,7 +86,7 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
    - If any two sources flatly contradict (mutually exclusive data), flags as `contradictory_evidence`.
    - **Weighted Fusion Logic:** If no hard contradictions are found, computes a final score by combining independent specialist signals:
      - *Source Reliability:* Based on MBFC "Factual Reporting" scores.
-     - *Recency:* Decay-weighted based on publication date vs. claim context.
+     <!-- - *Recency:* Decay-weighted based on publication date vs. claim context. -->
      - *Semantic Entailment:* LLM-scored alignment between evidence text and claim.
      - *Quantity:* Number of independent high-credibility domains providing supporting evidence.
    - **Fusion Calculation:** `Final Score = Σ (Signal_i * Weight_i)`. If the score is in the "gray zone" (e.g., 0.4 - 0.6), the agent defaults to `Uncertain (insufficient_evidence)`.
@@ -112,8 +112,8 @@ Define canonical objects across all agents using Pydantic V2 for validation:
   - `published_at`: Optional datetime.
   - `credibility_score`: Float (0.0 - 1.0). Derived from:
     1. *Source Reliability* (MBFC score).
-    2. *Recency* (Publication date vs. claim context).
-    3. *Semantic Entailment* (LLM-scored alignment).
+    <!-- 2. *Recency* (Publication date vs. claim context). -->
+    2. *Semantic Entailment* (LLM-scored alignment).
   - `excerpt`: Isolated pertinent passage (min 10 chars).
   - `lineage`: Metadata dict (retrieval/isolation traces).
 

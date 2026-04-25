@@ -62,8 +62,8 @@ class Evidence(BaseModel):
     def factual_weight(self) -> float:
         weights = {
             FactualReporting.VERY_HIGH: 1.0,
-            FactualReporting.HIGH: 0.8,
-            FactualReporting.MOSTLY_FACTUAL: 0.6,
-            FactualReporting.MIXED: 0.4,
+            FactualReporting.HIGH: 0.9,
+            FactualReporting.MOSTLY_FACTUAL: 0.7,
+            FactualReporting.MIXED: 0.5,
         }
         return weights.get(self.source_profile.factual_reporting, 0.0)

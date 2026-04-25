@@ -30,3 +30,16 @@ class MBFCRegistry:
                 mbfc_url=row["mbfc_url"]
             )
         return None
+    
+    def is_trusted(self, url: str) -> bool:
+        """
+        Hard Reject for non-exist URL or URL marked Low/Very Low factual reporting
+        """
+
+        profile = self.lookup_domain(url)
+        if not profile:
+            return False
+
+        if profile.factual_reporting in [FactualReporting.LOW, FactualReporting.VERY_LOW]:
+            return False
+        return True

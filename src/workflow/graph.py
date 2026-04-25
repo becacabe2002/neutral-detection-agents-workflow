@@ -22,7 +22,10 @@ async def decompose_claims_node(state: WorkflowState):
     agent = ClaimDecompositionAgent()
     claims = await agent.run(state["input_text"])
     logger.info(f"Decomposed into {len(claims)} atomic claims")
-    return {"claims": claims}
+    return {
+        "claims": claims, 
+        "logs": [f"🧠 Decomposed input into {len(claims)} atomic claims."]
+    }
 
 async def generate_queries_node(state: WorkflowState):
     """Generate search queries for each verifiable claim."""
@@ -36,10 +39,12 @@ async def generate_queries_node(state: WorkflowState):
         logger.info(f"Found {len(verifiable_claims)} verifiable claims")
         results = await asyncio.gather(*[agent.run(c.text) for c in verifiable_claims])
         queries_map = {c.id: q for c, q in zip(verifiable_claims, results)}
+        log_msg = f"🔍 Generated SEO queries for {len(verifiable_claims)} verifiable claims."
     else:
         logger.info("No verifiable claims found")
+        log_msg = "ℹ️ No verifiable claims found; skipping query generation."
         
-    return {"queries": queries_map}
+    return {"queries": queries_map, "logs": [log_msg]}
 
 async def retrieve_evidence_node(state: WorkflowState):
     """Retrieve evidence (ChromaDB first, then web fallback)."""
@@ -51,6 +56,7 @@ async def retrieve_evidence_node(state: WorkflowState):
     
     claims_to_search = [c for c in state["claims"] if state.get("queries", {}).get(c.id)]
     
+    new_logs = []
     if claims_to_search:
         logger.info(f"Searching evidence for {len(claims_to_search)} claims")
         results = await asyncio.gather(*[agent.run(c.id, state["queries"][c.id], c.text) for c in claims_to_search])
@@ -58,13 +64,16 @@ async def retrieve_evidence_node(state: WorkflowState):
             if cached:
                 logger.info(f"Claim {claim.id}: Found {len(cached)} cached evidences")
                 cached_evidences_map[claim.id] = cached
+                new_logs.append(f"📦 Claim '{claim.id[:8]}...': Found {len(cached)} matches in ChromaDB.")
             if artifacts:
                 logger.info(f"Claim {claim.id}: Found {len(artifacts)} web search artifacts")
                 evidence_keys_map[claim.id] = artifacts
+                new_logs.append(f"🌐 Claim '{claim.id[:8]}...': Initialized web search for {len(artifacts)} sources.")
     else:
         logger.info("No queries available for evidence retrieval")
+        new_logs.append("ℹ️ No queries to process for evidence.")
         
-    return {"raw_evidence_keys": evidence_keys_map, "evidences": cached_evidences_map}
+    return {"raw_evidence_keys": evidence_keys_map, "evidences": cached_evidences_map, "logs": new_logs}
 
 async def isolate_passages_node(state: WorkflowState):
     """Isolate passages from raw web content."""
@@ -74,16 +83,18 @@ async def isolate_passages_node(state: WorkflowState):
     isolated_evidences_map = {}
     claims_to_process = [c for c in state["claims"] if c.id in state.get("raw_evidence_keys", {})]
     
+    new_logs = []
     if claims_to_process:
         logger.info(f"Processing {len(claims_to_process)} claims with raw evidence")
         results = await asyncio.gather(*[agent.run(c, state["raw_evidence_keys"][c.id]) for c in claims_to_process])
         isolated_evidences_map = {c.id: evs for c, evs in zip(claims_to_process, results)}
         for c_id, evs in isolated_evidences_map.items():
             logger.info(f"Claim {c_id}: Isolated {len(evs)} passages")
+            new_logs.append(f"✂️ Extracted {len(evs)} relevant passages from raw web content for claim '{c_id[:8]}...'.")
     else:
         logger.info("No raw evidence keys to process")
         
-    return {"evidences": isolated_evidences_map}
+    return {"evidences": isolated_evidences_map, "logs": new_logs}
 
 async def score_credibility_node(state: WorkflowState):
     """Score credibility of new isolated passages."""
@@ -93,6 +104,7 @@ async def score_credibility_node(state: WorkflowState):
     updated_evidences_map = {}
     tasks = []
     claims_with_new_evidence = []
+    new_logs = []
     
     for claim in state["claims"]:
         evs = state.get("evidences", {}).get(claim.id, [])
@@ -116,14 +128,11 @@ async def score_credibility_node(state: WorkflowState):
             unique_evs = {e.unique_id: e for e in all_evs}.values()
             logger.info(f"Claim {claim.id}: Finished scoring. Total unique evidence count: {len(unique_evs)}")
             updated_evidences_map[claim.id] = list(unique_evs)
+            new_logs.append(f"⚖️ Scored {len(newly_scored)} new passages for '{claim.id[:8]}...'.")
     else:
         logger.info("No new passages to score")
-        # Deduplicate existing cached evidences just in case
-        for claim_id, evs in updated_evidences_map.items():
-            unique_evs = {e.unique_id: e for e in evs}.values()
-            updated_evidences_map[claim_id] = list(unique_evs)
             
-    return {"evidences": updated_evidences_map}
+    return {"evidences": updated_evidences_map, "logs": new_logs}
 
 async def persist_evidence_node(state: WorkflowState):
     """Persist new high-quality evidence back to ChromaDB."""
@@ -138,7 +147,7 @@ async def persist_evidence_node(state: WorkflowState):
                 persisted_count += 1
     
     logger.info(f"Persisted {persisted_count} new high-quality evidences")
-    return {}
+    return {"logs": [f"💾 Persisted {persisted_count} high-quality sources to long-term memory."]}
 
 async def ensemble_decision_node(state: WorkflowState):
     """Reach ensemble verdicts."""
@@ -152,7 +161,7 @@ async def ensemble_decision_node(state: WorkflowState):
     for c_id, report in verdicts.items():
         logger.info(f"Claim {c_id}: Verdict reached -> {report.verdict.value}")
         
-    return {"verdicts": verdicts}
+    return {"verdicts": verdicts, "logs": [f"🤝 Reached consensus for {len(verdicts)} claims using ensemble logic."]}
 
 async def synthesize_report_node(state: WorkflowState):
     """Synthesize final reports and summary."""
@@ -163,7 +172,7 @@ async def synthesize_report_node(state: WorkflowState):
     
     if not claims_to_verify:
         logger.warning("No claims identified for verification")
-        return {"final_output": "No claims were identified for verification."}
+        return {"final_output": "No claims were identified for verification.", "logs": ["⚠️ Workflow ended with no verifiable claims."]}
 
     logger.info(f"Verifying {len(claims_to_verify)} claims")
     results = await asyncio.gather(*[agent.run(c, state["verdicts"][c.id]) for c in claims_to_verify])
@@ -175,14 +184,14 @@ async def synthesize_report_node(state: WorkflowState):
         if report:
             verdict_label = report.verdict.value.upper()
             summary_parts.append(f"**[{verdict_label}] Claim:** {claim.text}")
-            summary_parts.append(f"**Verdict:** {verdict_label} (Confidence: {report.confidence})")
-            summary_parts.append(f"**Rationale:** {report.rationale}")
+            summary_parts.append(f"\n**Verdict:** {verdict_label} (Confidence: {report.confidence})")
+            summary_parts.append(f"\n**Rationale:** {report.rationale}")
             if report.correction:
                 summary_parts.append(f"**Correction:** {report.correction}")
             summary_parts.append("\n---\n")
     
     logger.info("Final report synthesis complete")
-    return {"verdicts": final_verdicts_map, "final_output": "\n".join(summary_parts)}
+    return {"verdicts": final_verdicts_map, "final_output": "\n".join(summary_parts), "logs": ["📝 Final report synthesized."]}
 
 def create_workflow():
     workflow = StateGraph(WorkflowState)

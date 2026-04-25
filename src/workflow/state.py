@@ -37,4 +37,5 @@ class WorkflowState(TypedDict):
 
     # Final synthesized summary
     final_output: str
+    logs: Annotated[List[str], operator.add]
     errors: Annotated[List[str], operator.add]

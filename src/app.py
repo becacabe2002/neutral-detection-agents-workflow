@@ -57,14 +57,46 @@ async def run_fact_check(text: str):
         "evidences": {},
         "verdicts": {},
         "final_output": "",
+        "logs": [],
         "errors": []
     }
     
     with st.status("🔍 Agents are working...", expanded=True) as status:
-        st.write("🎬 Initializing workflow...")
-        # Since app_workflow is a compiled LangGraph, we use astream or invoke
-        # We'll use invoke for simplicity in this MVP UI
-        final_state = await app_workflow.ainvoke(initial_state)
+        log_container = st.container()
+        processed_logs = set()
+        final_state = initial_state.copy()
+        
+        # Using astream to get live updates from LangGraph nodes
+        async for event in app_workflow.astream(initial_state):
+            # event is a dict where keys are node names and values are the returned state updates
+            for node_name, state_update in event.items():
+                # 1. Update UI logs
+                if "logs" in state_update:
+                    for log in state_update["logs"]:
+                        if log not in processed_logs:
+                            log_container.write(log)
+                            processed_logs.add(log)
+                
+                status.update(label=f"⏳ {node_name.replace('_', ' ').title()} in progress...")
+
+                # 2. Accumulate state
+                for k, v in state_update.items():
+                    if k == "logs":
+                        # We already handle logs via processed_logs set logic for the UI,
+                        # but we should still keep them in the state.
+                        # Since we use Annotated[List[str], operator.add] in state.py,
+                        # we should follow that if we were using invoke, 
+                        # but here we are manually merging.
+                        final_state[k].extend(v)
+                    elif isinstance(v, list) and k in final_state:
+                        # For claims, errors, etc.
+                        final_state[k].extend(v)
+                    elif isinstance(v, dict) and k in final_state:
+                        # For queries, raw_evidence_keys, evidences, verdicts
+                        final_state[k].update(v)
+                    else:
+                        final_state[k] = v
+
         status.update(label="✅ Fact-check complete!", state="complete")
     
     return final_state

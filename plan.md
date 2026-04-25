@@ -49,8 +49,8 @@ Given an input message, identify verifiable claims, assess factuality using trus
   - **Connection:** Managed via `REDIS_URL` in environment configuration.
   - **TTL Policy:** All keys are set with a strict 15-minute TTL to ensure the cache remains transient.
   - **Key Schema:** `scrape:{claim_id}:{url_hash}`.
-- Proxy Layer:
-  - `mattes/rotating-proxy` container for `ddgs` to facilitate high request rates. It uses HAProxy to load-balance requests across multiple Tor instances, providing a pool of rotating exit nodes.
+- Search API:
+  - Tavily Search API for reliable, LLM-optimized web retrieval.
 - Source credibility registry:
   - SQLite database seeded from MBFC JSON snapshot,
   - contains bias classifications, factual reporting scores, and credibility assessments for 9,000+ sources.
@@ -63,12 +63,12 @@ Centralized orchestrator controls agent sequence, retries, quality gates, and fi
    - Split input into atomic subclaims.
    - Filter verifiable vs non-verifiable statements.
 2. Query Generation Agent
-   - Generate 5 highly targeted, SEO-optimized search queries per verifiable subclaim.
+   - Generate 2 highly targeted, SEO-optimized search queries per verifiable subclaim.
    - **SEO Strategies:** Prioritize keyword density (entities + metrics + dates) over natural language; utilize search operators (exact match quotes, `OR` logic); employ intent-based stratification (Official, News reporting, Debunking, Contextual).
 3. Evidence Retrieval Agent
    - Query ChromaDB first.
-   - **Web Fallback Pipeline:** If ChromaDB is insufficient, fetch the top 10 results for each of the 5 generated queries (max 50 URLs per claim).
-   - **High-Volume Search:** Use `ddgs` routed through a Tor Proxy to maintain high throughput and avoid search engine rate limits.
+   - **Web Fallback Pipeline:** If ChromaDB is insufficient, fetch the top 3 results for each of the 2 generated queries (max 6 URLs per claim).
+   - **Tavily Search:** Use Tavily API to maintain high throughput and reliability, bypassing the need for complex proxy rotation.
    - **MBFC Pre-Flight Check:** Perform immediate domain lookup against MBFC SQLite; discard any URL from an unknown or untrusted domain before scraping.
    - **Transient Caching:** Scrape full text from approved URLs using a lightweight parser (e.g., BeautifulSoup) to strip HTML, CSS, and extraneous DOM elements. Store the raw text payload into Redis with a short TTL (e.g., 15 mins), and pass only the resulting Redis key to the LangGraph state.
 4. Passage Isolation Agent
@@ -223,8 +223,8 @@ User input:
 - `app`: Streamlit + Orchestrator.
 - `chromadb`: Private vector store.
 - `redis`: Transient key-value store for passing scraped HTML between agents.
+- **Tavily API:** External search API for reliable web retrieval.
 - **GPU Acceleration:** Requires NVIDIA Container Toolkit and `nvidia` driver reservation in Compose.
-- `tor-proxy`: Tor-based HTTP proxy for rotating outgoing search IPs.
 - `cloudflared`: Public ingress only to `app:8501`.
 - Volumes for `chroma_data` and `mbfc_data`.
 
@@ -266,7 +266,7 @@ neutral-detection-agents-workflow/
     │   ├── __init__.py
     │   ├── mbfc_registry.py     # SQLite connection and domain lookup logic
     │   ├── chroma_store.py      # ChromaDB connection, upsert, and query logic
-    │   ├── web_search.py        # Web search integration (DuckDuckGo via Tor)
+    │   ├── web_search.py        # Web search integration (Tavily API)
     │   ├── web_scraper.py       # BeautifulSoup extraction logic
     │   └── redis_cache.py       # Redis connection and transient caching logic
     │

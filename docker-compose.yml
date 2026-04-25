@@ -1,0 +1,64 @@
+services:
+  app:
+    build: .
+    container_name: fact-checker
+    ports:
+      - "8501:8501"
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      chromadb: 
+        condition: service_started
+      redis:
+        condition: service_healthy
+    
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: fact-checker-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/data
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 30s
+  
+  redis:
+    image: redis:alpine
+    container_name: fact-checker-redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: fact-checker-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+
+volumes:
+  chroma_data:

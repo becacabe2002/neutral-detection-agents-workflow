@@ -25,7 +25,7 @@ Implementation TODO list based on `plan.md`.
 ## 4) Retrieval layer (ChromaDB, Redis & Web Fallback)
 - [x] **ChromaDB Service (`src/services/chroma_store.py`)**: Initialize, vector search, `upsert_evidence`.
 - [x] **Redis Cache Service (`src/services/redis_cache.py`)**: Transient storage for scraped payloads.
-- [x] **Web Search Service (`src/services/web_search.py`)**: Integrate `ddgs` (DuckDuckGo Search) with `rotating-proxy` support.
+- [x] **Web Search Service (`src/services/web_search.py`)**: Integrate Tavily Search API for reliable, LLM-optimized web retrieval.
 - [x] **Scraping Service (`src/services/web_scraper.py`)**: BeautifulSoup parser for clean text.
 - [x] **MBFC Pre-Flight Logic**: Integrate into retrieval to drop URLs before scraping.
 - [x] **Normalization & Write-back**: Map to `Evidence` model and perform "Verification Gate" check.
@@ -57,6 +57,6 @@ Implementation TODO list based on `plan.md`.
 - [ ] Track latency, uncertainty rates, and structured logs.
 
 ## 10) Deployment
-- [ ] Configure `docker-compose.yml` (app, chromadb, redis, tor-proxy, cloudflared).
+- [ ] Configure `docker-compose.yml` (app, chromadb, redis, cloudflared).
 - [ ] Volume configuration for `chroma_data` and `mbfc_data`.
 

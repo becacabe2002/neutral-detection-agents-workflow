@@ -6,6 +6,9 @@ if [ -f "/app/.venv/bin/activate" ]; then
     source /app/.venv/bin/activate
 fi
 
+# Ensure /app is in PYTHONPATH so 'import src' works
+export PYTHONPATH=$PYTHONPATH:/app
+
 # Ensure data directory exists
 mkdir -p data
 

@@ -15,6 +15,8 @@ class WorkflowState(TypedDict):
     """
     Central state object for the LangGraph workflow
     """
+    # trace id for logging
+    trace_id: str
     # raw input from user 
     input_text: str
     

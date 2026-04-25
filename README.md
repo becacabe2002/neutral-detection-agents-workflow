@@ -6,7 +6,7 @@ Implementation TODO list based on `plan.md`.
 - [x] Create project skeleton: `src/`, `tests/`, `scripts/`, `data/`.
 - [x] Add dependency management (`pyproject.toml`).
 - [x] Add env config template (`.env.example`) for API keys and runtime flags.
-- [ ] Add basic logging and config loader (dev/prod modes).
+- [x] Add basic logging and config loader (dev/prod modes).
 - [ ] Add Docker assets scaffold: `docker-compose.yml`, `Dockerfile`, `.dockerignore`.
 - [x] Add `redis.conf` optimized for transient caching.
 
@@ -28,7 +28,7 @@ Implementation TODO list based on `plan.md`.
 - [x] **Web Search Service (`src/services/web_search.py`)**: Integrate `ddgs` (DuckDuckGo Search) with `rotating-proxy` support.
 - [x] **Scraping Service (`src/services/web_scraper.py`)**: BeautifulSoup parser for clean text.
 - [x] **MBFC Pre-Flight Logic**: Integrate into retrieval to drop URLs before scraping.
-- [ ] **Normalization & Write-back**: Map to `Evidence` model and perform "Verification Gate" check.
+- [x] **Normalization & Write-back**: Map to `Evidence` model and perform "Verification Gate" check.
 
 ## 5) Agent implementations (`src/agents/`)
 - [x] Claim Decomposition Agent
@@ -42,7 +42,7 @@ Implementation TODO list based on `plan.md`.
 ## 6) Orchestration (`src/workflow/`)
 - [x] Implement `state.py` (LangGraph state) and `graph.py` (nodes/edges).
 - [x] Add quality gates: Citation, Contradiction, Confidence thresholds.
-- [ ] Add workflow-level trace IDs.
+- [x] Add workflow-level trace IDs.
 
 ## 7) Streamlit UI (`src/app.py`)
 - [ ] Build input form, verdict table, confidence/rationale display.

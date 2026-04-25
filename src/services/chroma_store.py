@@ -1,38 +1,37 @@
 import chromadb
-from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
+from fastembed import TextEmbedding
+from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 from src.config import settings
 from src.models.evidence import Evidence
-from sentence_transformers import SentenceTransformer
-import torch
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-class BGEEmbedingFunction:
+class FastEmbedEmbeddingFunction(EmbeddingFunction):
     """
-    Custom embeding function which let ChromaDB uses custom embedding model
+    Custom wrapper for fastembed to be used with ChromaDB
     """
+    def __init__(self, model_name: str):
+        self.model = TextEmbedding(model_name=model_name)
 
-    def __init__(self):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = SentenceTransformer(settings.EMBEDDING_MODEL, device=device)
-
-    def __call__(self, input: Documents) -> Embeddings :
-        embeddings = self.model.encode(input, normalize_embeddings=True)
-        return embeddings.tolist()
-        
+    def __call__(self, input: Documents) -> Embeddings:
+        # fastembed.embed returns a generator of numpy arrays
+        return [e.tolist() for e in self.model.embed(input)]
 
 class ChromaStore:
     def __init__(self, host: str = settings.CHROMA_HOST, port: int = settings.CHROMA_PORT):
         self.client = chromadb.HttpClient(host=host, port=port)
 
-        # Setup embedding function
-        self.embedding_fn = BGEEmbedingFunction()
+        # Setup embedding function using our custom FastEmbed wrapper
+        self.embedding_fn = FastEmbedEmbeddingFunction(
+            model_name=settings.EMBEDDING_MODEL
+        )
 
         self.collection = self.client.get_or_create_collection(
             name="evidence_v1",
             embedding_function=self.embedding_fn,
             metadata={"hnsw:space": "cosine"}
         )
+
     
     def upsert_evidence(self, claim_id: str, evidence: Evidence):
         """

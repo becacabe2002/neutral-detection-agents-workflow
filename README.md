@@ -23,11 +23,11 @@ Implementation TODO list based on `plan.md`.
 - [x] Add indexes for fast domain lookup.
 
 ## 4) Retrieval layer (ChromaDB, Redis & Web Fallback)
-- [ ] **ChromaDB Service (`src/services/chroma_store.py`)**: Initialize, vector search, `upsert_evidence`.
-- [ ] **Redis Cache Service (`src/services/redis_cache.py`)**: Transient storage for scraped payloads.
-- [ ] **Web Search Service (`src/services/web_search.py`)**: Integrate `ddgs` (DuckDuckGo Search) with `rotating-proxy` support.
-- [ ] **Scraping Service (`src/services/web_scraper.py`)**: BeautifulSoup parser for clean text.
-- [ ] **MBFC Pre-Flight Logic**: Integrate into retrieval to drop URLs before scraping.
+- [x] **ChromaDB Service (`src/services/chroma_store.py`)**: Initialize, vector search, `upsert_evidence`.
+- [x] **Redis Cache Service (`src/services/redis_cache.py`)**: Transient storage for scraped payloads.
+- [x] **Web Search Service (`src/services/web_search.py`)**: Integrate `ddgs` (DuckDuckGo Search) with `rotating-proxy` support.
+- [x] **Scraping Service (`src/services/web_scraper.py`)**: BeautifulSoup parser for clean text.
+- [x] **MBFC Pre-Flight Logic**: Integrate into retrieval to drop URLs before scraping.
 - [ ] **Normalization & Write-back**: Map to `Evidence` model and perform "Verification Gate" check.
 
 ## 5) Agent implementations (`src/agents/`)

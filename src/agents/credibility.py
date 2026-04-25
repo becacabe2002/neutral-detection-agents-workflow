@@ -7,15 +7,15 @@ from src.models.evidence import Evidence, FactualReporting
 from src.config import settings
 
 class EntailmentScore(BaseModel):
-    score: float = Field(..., ge=0.0, le=1.0, description="0.0 = irrelevant/contradicts, 1.0 = perfect support")
+    score: float = Field(..., ge=0.0, le=1.0, description="0.0 = irrelevant, 1.0 = perfect relevance (confirms or refutes)")
     reasoning: str
 
 SYSTEM_PROMPT = """
-You are a Semantic Entailment Specialist. Compare the CLAIM to the EVIDENCE EXCERPT.
-Score how directly the excerpt supports or addresses the claim on a scale of 0.0 to 1.0
-- 1.0: Perfect semantic alignment and support.
-- 0.5: Mentions the topic but is neutral or ambiguous.
-- 0.0: Totally irrelevant or flatly contradicts the semantic context.
+You are a Semantic Relevance Specialist. Compare the CLAIM to the EVIDENCE EXCERPT.
+Score how directly the excerpt addresses the claim (either by supporting it OR refuting it) on a scale of 0.0 to 1.0.
+- 1.0: Directly confirms OR directly refutes the claim with specific factual information.
+- 0.5: Mentions the topic or entities but is neutral, ambiguous, or only partially relevant.
+- 0.0: Totally irrelevant to the factual content of the claim.
 """
 
 class CredibilityAgent: 

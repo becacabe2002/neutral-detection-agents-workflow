@@ -26,7 +26,9 @@ Follow these rules:
 2. For each claim, determine if it is verifiable or not.
 3. Identify the claim type (atomic, compound, or non_verifiable)
 4. Extract any temporal context (e.g., "in 2025").
-5. If a statement is a subjective opinion, a value judgment, or overly vague, mark it as non_verifiable.
+5. If a statement is a subjective opinion, a value judgment, or a personal preference, mark it as non_verifiable.
+6. Common myths, urban legends, and potentially false factual statements ARE verifiable and MUST be marked as verifiable=True so they can be fact-checked.
+7. Focus on whether a claim *could* be proven or disproven by evidence, regardless of whether you suspect it is true or false.
 
 DO NOT GENERATE IDs. Focus on the claim text and metadata.
 """

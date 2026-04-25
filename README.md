@@ -7,7 +7,7 @@ Implementation TODO list based on `plan.md`.
 - [x] Add dependency management (`pyproject.toml`).
 - [x] Add env config template (`.env.example`) for API keys and runtime flags.
 - [x] Add basic logging and config loader (dev/prod modes).
-- [ ] Add Docker assets scaffold: `docker-compose.yml`, `Dockerfile`, `.dockerignore`.
+- [x] Add Docker assets scaffold: `docker-compose.yml`, `Dockerfile`, `.dockerignore`.
 - [x] Add `redis.conf` optimized for transient caching.
 
 ## 2) Core data contracts
@@ -45,7 +45,7 @@ Implementation TODO list based on `plan.md`.
 - [x] Add workflow-level trace IDs.
 
 ## 7) Streamlit UI (`src/app.py`)
-- [ ] Build input form, verdict table, confidence/rationale display.
+- [x] Build input form, verdict table, confidence/rationale display.
 - [ ] **Conflict View**: Side-by-side comparison.
 - [ ] Debug panel (agent outputs + timing).
 
@@ -57,6 +57,6 @@ Implementation TODO list based on `plan.md`.
 - [ ] Track latency, uncertainty rates, and structured logs.
 
 ## 10) Deployment
-- [ ] Configure `docker-compose.yml` (app, chromadb, redis, cloudflared).
-- [ ] Volume configuration for `chroma_data` and `mbfc_data`.
+- [x] Configure `docker-compose.yml` (app, chromadb, redis, cloudflared).
+- [x] Volume configuration for `chroma_data`.
 

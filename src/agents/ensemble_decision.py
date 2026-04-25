@@ -8,16 +8,21 @@ from src.models.claim import Claim
 from src.config import settings
 
 class ConsensusResult(BaseModel):
-    is_contradictory: bool = Field(..., description="True if evidence pieces flatly contradict each other")
-    explanation: str = Field(..., description="Detailed explanation of the consensus or contradiction")
-    conflicting_ids: List[str] = Field(default_factory=list, description="List of source URLs that are in conflict")
-    suggested_verdict: Verdict = Field(..., description="The verdict based on pure semantic consensus")
+    is_contradictory: bool = Field(..., description="True if high-credibility sources flatly contradict EACH OTHER on the core facts.")
+    is_refuted: bool = Field(..., description="True if high-credibility sources are internally consistent but collectively REFUTE the user's claim.")
+    explanation: str = Field(..., description="Detailed explanation of the consensus, refutation, or contradiction.")
+    conflicting_ids: List[str] = Field(default_factory=list, description="List of source URLs that are in conflict with each other.")
+    suggested_verdict: Verdict = Field(..., description="The verdict based on pure semantic consensus.")
 
 SYSTEM_PROMPT = """
-You are a Consensus Analyst. Compare multiple pieces of evidence against a claim.
-Your task are:
-* Identify if there are flat contradictions (mutually exclusive facts) between high-credibility sources.
-* If contradictory, specify which URLs conflict.
+You are a Consensus Analyst. Compare multiple pieces of evidence against a factual CLAIM.
+Your tasks are:
+1. **Analyze Support/Refutation**: Determine if the evidence collectively supports, refutes, or is neutral toward the claim.
+2. **Identify Source Conflict**: Detect if high-credibility sources flatly contradict EACH OTHER (mutually exclusive facts).
+3. **Determine Verdict**:
+   - If sources agree the claim is false, set is_refuted=True and suggested_verdict='Not Supported'.
+   - If sources disagree with each other on the facts, set is_contradictory=True and suggested_verdict='Uncertain'.
+   - If sources agree with the claim, set suggested_verdict='Supported'.
 """
 
 class EnsembleDecisionAgent:
@@ -36,7 +41,7 @@ class EnsembleDecisionAgent:
         self.chain = self.prompt | self.llm
 
     async def run(self, claim: Claim, evidences: List[Evidence]) -> VerdictReport:
-        # check for exist of evidences
+        # check for existence of evidences
         if not evidences:
             return VerdictReport(
                 claim_id=claim.id,
@@ -56,12 +61,12 @@ class EnsembleDecisionAgent:
             "evidence_text": evidence_text
         })
 
-        # handle if there is contradicts in evidences
+        # Case 1: Internal Contradiction (Sources disagree with each other)
         if consensus.is_contradictory:
             return VerdictReport(
                 claim_id=claim.id,
                 verdict=Verdict.UNCERTAIN,
-                confidence=0.4, # Low confidence due to conflict
+                confidence=0.4, 
                 rationale=consensus.explanation,
                 citations=evidences,
                 uncertainty_type=UncertaintyType.CONTRADICTORY_EVIDENCE,
@@ -70,12 +75,21 @@ class EnsembleDecisionAgent:
                     conflicting_evidence_ids=consensus.conflicting_ids
                 )
             )
+        
+        # Case 2: Collective Refutation (Sources agree claim is false)
+        if consensus.is_refuted:
+            return VerdictReport(
+                claim_id=claim.id,
+                verdict=Verdict.NOT_SUPPORTED,
+                confidence=0.85, # High confidence in refutation
+                rationale=consensus.explanation,
+                citations=evidences,
+                uncertainty_type=UncertaintyType.NONE
+            )
 
-        # Calculate Weighted Fusion Logic
-        # Final Score = Σ (Signal_i * Weight_i) / N + Quantity Boost
+        # Case 3: Weighted Fusion (Supportive/Neutral/Mixed)
         total_score = 0.0
         for ev in evidences:
-            # credibility_score already includes Reliability * Entailment
             total_score += ev.credibility_score
 
         avg_score = total_score / len(evidences)
@@ -86,12 +100,12 @@ class EnsembleDecisionAgent:
         
         final_confidence = min(1.0, avg_score + quantity_boost)
 
-        # Determine Verdict based on Thresholds
-        if final_confidence >= 0.65:
-            verdict = Verdict.SUPPORTED
-        elif final_confidence <= 0.45:
-            verdict = Verdict.NOT_SUPPORTED
-        else:
+        # Determine Verdict based on LLM suggestion and relevance-based confidence
+        # We trust the LLM's categorical choice, but use the fusion logic for the score
+        verdict = consensus.suggested_verdict
+        
+        # If the fusion logic shows extremely low evidence quality/relevance, force Uncertain
+        if final_confidence < 0.35 and verdict != Verdict.UNCERTAIN:
             verdict = Verdict.UNCERTAIN
 
         return VerdictReport(

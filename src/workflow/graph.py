@@ -37,7 +37,7 @@ async def generate_queries_node(state: WorkflowState):
     
     if verifiable_claims:
         logger.info(f"Found {len(verifiable_claims)} verifiable claims")
-        results = await asyncio.gather(*[agent.run(c.text) for c in verifiable_claims])
+        results = await asyncio.gather(*[agent.run(c.text, c.timestamp_context) for c in verifiable_claims])
         queries_map = {c.id: q for c, q in zip(verifiable_claims, results)}
         log_msg = f"🔍 Generated SEO queries for {len(verifiable_claims)} verifiable claims."
     else:
@@ -53,6 +53,8 @@ async def retrieve_evidence_node(state: WorkflowState):
     agent = EvidenceRetrievalAgent()
     evidence_keys_map = {}
     cached_evidences_map = {}
+    excluded_map = {}
+    scraped_map = {}
     
     claims_to_search = [c for c in state["claims"] if state.get("queries", {}).get(c.id)]
     
@@ -60,7 +62,7 @@ async def retrieve_evidence_node(state: WorkflowState):
     if claims_to_search:
         logger.info(f"Searching evidence for {len(claims_to_search)} claims")
         results = await asyncio.gather(*[agent.run(c.id, state["queries"][c.id], c.text) for c in claims_to_search])
-        for claim, (artifacts, cached) in zip(claims_to_search, results):
+        for claim, (artifacts, cached, excluded) in zip(claims_to_search, results):
             if cached:
                 logger.info(f"Claim {claim.id}: Found {len(cached)} cached evidences")
                 cached_evidences_map[claim.id] = cached
@@ -69,11 +71,18 @@ async def retrieve_evidence_node(state: WorkflowState):
                 logger.info(f"Claim {claim.id}: Found {len(artifacts)} web search artifacts")
                 evidence_keys_map[claim.id] = artifacts
                 new_logs.append(f"🌐 Claim '{claim.id[:8]}...': Initialized web search for {len(artifacts)} sources.")
+                scraped_map[claim.id] = [a["url"] for a in artifacts]
+            excluded_map[claim.id] = excluded
     else:
         logger.info("No queries available for evidence retrieval")
         new_logs.append("ℹ️ No queries to process for evidence.")
         
-    return {"raw_evidence_keys": evidence_keys_map, "evidences": cached_evidences_map, "logs": new_logs}
+    return {
+        "raw_evidence_keys": evidence_keys_map, 
+        "evidences": cached_evidences_map,
+        "excluded_sources": excluded_map,
+        "scraped_sources": scraped_map,
+        "logs": new_logs}
 
 async def isolate_passages_node(state: WorkflowState):
     """Isolate passages from raw web content."""
@@ -139,15 +148,22 @@ async def persist_evidence_node(state: WorkflowState):
     logger = WorkflowLogger.get_logger("persist_node", state.get("trace_id", "N/A"))
     logger.info("Persisting high-quality evidence to ChromaDB")
     store = ChromaStore()
+    persisted_map = {}
     persisted_count = 0
     for claim_id, evidences in state.get("evidences", {}).items():
-        for ev in evidences:
-            if ev.lineage.get("source") != "chromadb" and ev.credibility_score >= 0.7:
-                store.upsert_evidence(claim_id, ev)
-                persisted_count += 1
+        persisted_for_claim = [ev for ev in evidences if ev.lineage.get("source") != "chromadb" and ev.credibility_score >= 0.7]
+        for ev in persisted_for_claim:
+            store.upsert_evidence(claim_id, ev)
+            persisted_count += 1
+        if persisted_for_claim:
+            persisted_map[claim_id] = persisted_for_claim
+            
     
     logger.info(f"Persisted {persisted_count} new high-quality evidences")
-    return {"logs": [f"💾 Persisted {persisted_count} high-quality sources to long-term memory."]}
+    return {
+        "persisted_evidences": persisted_map,
+        "logs": [f"💾 Persisted {persisted_count} high-quality sources to long-term memory."]
+        }
 
 async def ensemble_decision_node(state: WorkflowState):
     """Reach ensemble verdicts."""

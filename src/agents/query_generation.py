@@ -26,11 +26,14 @@ class QueryGenerationAgent(BaseAgent):
         from langchain_core.prompts import ChatPromptTemplate
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
-            ("user", "Generate search queries for this claim: {claim_text}")
+            ("user", "Generate search queries for this input: \n {input_text}")
         ])
 
         self.chain = self.prompt | self.llm
 
-    async def run(self, claim_text: str) -> List[str]:
-        result: QueryList = await self.chain.ainvoke({"claim_text": claim_text})
+    async def run(self, claim_text: str, timestamp_context: str = None) -> List[str]:
+        input_text = f"Claim: {claim_text}"
+        if timestamp_context:
+            input_text += f" - Time Context: {timestamp_context}"
+        result: QueryList = await self.chain.ainvoke({"input_text": input_text})
         return result.queries

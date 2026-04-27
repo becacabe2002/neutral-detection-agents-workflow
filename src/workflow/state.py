@@ -26,6 +26,12 @@ class WorkflowState(TypedDict):
     # map claim id -> their seo queries
     queries: Annotated[Dict[str, List[str]], merge_dicts]
 
+    excluded_sources: Annotated[Dict[str, List[str]], merge_dicts]
+
+    scraped_sources: Annotated[Dict[str, List[str]], merge_dicts]
+
+    persisted_evidences: Annotated[Dict[str, List[Evidence]], merge_dicts]
+
     # map claim id -> redis keys of raw scraped text
     raw_evidence_keys: Annotated[Dict[str, List[ScrapeArtifact]], merge_dicts]
 

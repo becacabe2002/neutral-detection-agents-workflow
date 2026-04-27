@@ -9,7 +9,7 @@ class EvidenceRetrievalAgent(BaseAgent):
         # Note: This agent doesn't use an LLM directly, but inherits service access.
         super().__init__()
 
-    async def run(self, claim_id: str, queries: List[str], claim_text: str) -> Tuple[List[dict], List[Evidence]]:
+    async def run(self, claim_id: str, queries: List[str], claim_text: str) -> Tuple[List[dict], List[Evidence], List[str]]:
         """
         Retrieves evidence for a claim. 
         First checks ChromaDB for existing high-quality evidence.
@@ -38,7 +38,7 @@ class EvidenceRetrievalAgent(BaseAgent):
                 
                 # If we found sufficient local evidence, return early
                 if cached_evidences:
-                    return [], cached_evidences
+                    return [], cached_evidences, []
         except Exception as e:
             print(f"ChromaDB retrieval error: {e}")
 
@@ -53,9 +53,11 @@ class EvidenceRetrievalAgent(BaseAgent):
         
         total_search_results = settings.MAX_QUERIES_PER_CLAIMS * settings.MAX_SEARCH_RESULTS
         artifacts = []
+        excluded_urls = []
         for url in list(all_urls)[:total_search_results]:
             # MBFC Pre-flight check
             if not self.mbfc.is_trusted(url):
+                excluded_urls.append(url)
                 continue
             try:
                 payload = self.scraper.scrape(url)
@@ -71,4 +73,4 @@ class EvidenceRetrievalAgent(BaseAgent):
                 print(f"Failed to process {url}: {e}")
                 continue
                 
-        return artifacts, []
+        return artifacts, [], excluded_urls

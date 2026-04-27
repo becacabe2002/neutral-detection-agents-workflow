@@ -41,6 +41,7 @@ def format_evidence_table(evidences: list[Evidence]):
             "Source": ev.source_domain,
             "Credibility": f"{ev.credibility_score:.2f}",
             "Factual Reporting": ev.source_profile.factual_reporting.value,
+            "Excerpt": ev.excerpt,
             "Bias": ev.source_profile.bias_classification.value,
             "URL": str(ev.source_url)
         })
@@ -58,7 +59,10 @@ async def run_fact_check(text: str):
         "verdicts": {},
         "final_output": "",
         "logs": [],
-        "errors": []
+        "errors": [],
+        "excluded_sources": {},
+        "scraped_sources": {},
+        "persisted_evidences": {}
     }
     
     with st.status("🔍 Agents are working...", expanded=True) as status:
@@ -82,17 +86,10 @@ async def run_fact_check(text: str):
                 # 2. Accumulate state
                 for k, v in state_update.items():
                     if k == "logs":
-                        # We already handle logs via processed_logs set logic for the UI,
-                        # but we should still keep them in the state.
-                        # Since we use Annotated[List[str], operator.add] in state.py,
-                        # we should follow that if we were using invoke, 
-                        # but here we are manually merging.
                         final_state[k].extend(v)
                     elif isinstance(v, list) and k in final_state:
-                        # For claims, errors, etc.
                         final_state[k].extend(v)
                     elif isinstance(v, dict) and k in final_state:
-                        # For queries, raw_evidence_keys, evidences, verdicts
                         final_state[k].update(v)
                     else:
                         final_state[k] = v
@@ -123,54 +120,103 @@ if st.button("Analyze Factuality", type="primary"):
         st.subheader("Detailed Evidence Breakdown")
         
         for claim in result_state.get("claims", []):
-            with st.expander(f"Claim: {claim.text}", expanded=True):
+            # 1. Include Time Context in Claim Header
+            header = f"Claim: {claim.text}"
+            if claim.timestamp_context:
+                header += f" (Time Context: {claim.timestamp_context})"
+                
+            with st.expander(header, expanded=True):
                 verdict: VerdictReport = result_state.get("verdicts", {}).get(claim.id)
                 
                 if not verdict:
                     st.write("No verdict reached for this claim.")
-                    continue
-                
-                # Visual Verdict Badge
-                col1, col2, col3 = st.columns([1, 1, 2])
-                with col1:
-                    color = {
-                        "Supported": "green",
-                        "Not Supported": "red",
-                        "Uncertain": "orange"
-                    }.get(verdict.verdict.value, "gray")
-                    st.markdown(f"### :{color}[{verdict.verdict.value}]")
-                with col2:
-                    st.metric("Confidence", f"{verdict.confidence:.2f}")
-                with col3:
-                    if verdict.uncertainty_type.value != "none":
-                        st.warning(f"Uncertainty: {verdict.uncertainty_type.value}")
-
-                st.markdown(f"**Rationale:** {verdict.rationale}")
-                
-                if verdict.correction:
-                    st.info(f"**Suggested Correction:** {verdict.correction}")
-
-                # Conflict Comparison View
-                if verdict.uncertainty_type.value == "contradictory_evidence" and verdict.conflict_details:
-                    st.subheader("⚖️ Conflict Comparison")
-                    st.write(verdict.conflict_details.primary_contradiction or "Multiple sources provide conflicting data.")
-                    
-                    # Display conflicting IDs if available (Logic would map them to evidence list)
-                    # For MVP, we show all evidence and highlight conflicts in rationale
-                
-                # Citations Table
-                ev_list = result_state.get("evidences", {}).get(claim.id, [])
-                if ev_list:
-                    st.markdown("**Citations:**")
-                    df = format_evidence_table(ev_list)
-                    st.dataframe(df, width='stretch', hide_index=True)
-                    
-                    for ev in ev_list:
-                        with st.popover(f"Excerpt from {ev.source_domain}"):
-                            st.write(ev.excerpt)
-                            st.caption(f"Lineage: {ev.lineage}")
                 else:
-                    st.info("No credible evidence found for this subclaim.")
+                    # Visual Verdict Badge
+                    col1, col2, col3 = st.columns([1, 1, 2])
+                    with col1:
+                        color = {
+                            "Supported": "green",
+                            "Not Supported": "red",
+                            "Uncertain": "orange"
+                        }.get(verdict.verdict.value, "gray")
+                        st.markdown(f"### :{color}[{verdict.verdict.value}]")
+                    with col2:
+                        st.metric("Confidence", f"{verdict.confidence:.2f}")
+                    with col3:
+                        if verdict.uncertainty_type.value != "none":
+                            st.warning(f"Uncertainty: {verdict.uncertainty_type.value}")
+
+                    st.markdown(f"**Rationale:** {verdict.rationale}")
+                    
+                    if verdict.correction:
+                        st.info(f"**Suggested Correction:** {verdict.correction}")
+
+                    # Conflict Comparison View
+                    if verdict.uncertainty_type.value == "contradictory_evidence" and verdict.conflict_details:
+                        st.subheader("⚖️ Conflict Comparison")
+                        st.error(verdict.conflict_details.primary_contradiction or "Multiple sources provide conflicting data.")
+                        
+                        if verdict.conflict_details.conflicting_evidence_ids:
+                            st.write("**Conflicting Sources:**")
+                            for c_id in verdict.conflict_details.conflicting_evidence_ids:
+                                st.caption(f"- {c_id}")
+
+                # Diagnostic Tabs
+                tab_ev, tab_diag, tab_memory = st.tabs(["📄 Isolated Evidence", "🔍 Search Diagnostics", "🧠 Long-term Memory"])
+
+                with tab_ev:
+                    # 5. List of isolated evidences
+                    ev_list = result_state.get("evidences", {}).get(claim.id, [])
+                    if ev_list:
+                        st.markdown("**Pertinent Passages extracted from sources:**")
+                        df = format_evidence_table(ev_list)
+                        st.dataframe(df, width='stretch', hide_index=True)
+                        
+                        for ev in ev_list:
+                            with st.popover(f"Excerpt from {ev.source_domain}"):
+                                st.write(ev.excerpt)
+                                st.caption(f"Lineage: {ev.lineage}")
+                    else:
+                        st.info("No relevant evidence isolated for this subclaim.")
+
+                with tab_diag:
+                    # 2. Queries list
+                    st.markdown("**Generated Search Queries:**")
+                    queries = result_state.get("queries", {}).get(claim.id, [])
+                    if queries:
+                        for q in queries:
+                            st.code(q, language=None)
+                    else:
+                        st.write("No queries generated.")
+
+                    col_ex, col_sc = st.columns(2)
+                    with col_ex:
+                        # 3. List of search domains excluded
+                        st.markdown("❌ **Excluded (Pre-flight Check Fail):**")
+                        excluded = result_state.get("excluded_sources", {}).get(claim.id, [])
+                        if excluded:
+                            for url in excluded:
+                                st.caption(url)
+                        else:
+                            st.write("None")
+                    with col_sc:
+                        # 4. List of scraped domains
+                        st.markdown("✅ **Scraped Domains:**")
+                        scraped = result_state.get("scraped_sources", {}).get(claim.id, [])
+                        if scraped:
+                            for url in scraped:
+                                st.caption(url)
+                        else:
+                            st.write("None")
+
+                with tab_memory:
+                    # 6. List of strong evidences saved in chromadb
+                    persisted = result_state.get("persisted_evidences", {}).get(claim.id, [])
+                    if persisted:
+                        st.success(f"Saved {len(persisted)} high-quality passages to long-term memory (ChromaDB).")
+                        st.dataframe(format_evidence_table(persisted), hide_index=True)
+                    else:
+                        st.info("No new high-quality evidence (score >= 0.7) was persisted for this claim.")
 
 st.divider()
 st.caption("Neutral Detection Agents Workflow | Built with LangGraph & Streamlit")

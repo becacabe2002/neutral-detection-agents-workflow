@@ -47,7 +47,7 @@ class Evidence(BaseModel):
     published_at: Optional[datetime] = None
     # differ from credibility_assessment of Source
     # calculate by combining signals: 
-    # Source reliability + Recency + Semantic Entailment
+    # Source reliability + Semantic Entailment
     credibility_score: float = Field(..., ge=0.0, le=1.0)
     # Isolated pertinent passage
     excerpt: str = Field(..., min_length=3)

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List
 from pydantic import BaseModel, Field
 from src.agents.base import BaseAgent
@@ -5,14 +6,28 @@ from src.models.claim import Claim
 from src.models.evidence import Evidence, FactualReporting
 from src.config import settings
 
+class RelationshipType(str, Enum):
+    SUPPORTS = "Supports"
+    REFUTES = "Refutes"
+    NEUTRAL_RELATED = "Neutral/Related"
+    IRRELEVANT = "Irrelevant"
+
 class EntailmentScore(BaseModel):
-    score: float = Field(..., ge=0.0, le=1.0, description="0.0 = irrelevant, 1.0 = perfect relevance (confirms or refutes)")
-    reasoning: str
+    reasoning: str = Field(..., description="Explain how the exerpt relates to the claim.")
+    relationship: RelationshipType = Field(..., description="Categorize the relationship.")
+    score: float = Field(..., ge=0.0, le=1.0, description="0.0 = irrelevant, 1.0 = perfect relevance (even if it confirms or refutes the claim)")
 
 SYSTEM_PROMPT = """
-You are a Semantic Relevance Specialist. Compare the CLAIM to the EVIDENCE EXCERPT.
-Score how directly the excerpt addresses the claim (either by supporting it OR refuting it) on a scale of 0.0 to 1.0.
-- 1.0: Directly confirms OR directly refutes the claim with specific factual information.
+You are a Semantic Relevance Specialist. Your job is to measure how much an EVIDENCE EXCERPT *address* a CLAIM, regardless of whether it proves the claim true or false.
+
+CRITICAL ISNTRUCTION:
+Do not confuse "Relevance" with "Truth". An excerpt that directly REFUTES the claim is highly relevant to fact-checking process of it, therefore must receive a high relevance score (near 1.0).
+
+Follow these steps when addressing the excerpt:
+1. Explain your reasoning: Analyze the excerpt against the claim. Does it support, refute or merely relate to the topic?
+2. Categorize the relationship (SUPPORTS, REFUTES, NEUTRAL_RELATED or IRRELEVANT).
+3. Assign a relevance score from 0.0 to 1.0:
+- 1.0: Highly relevant (Directly SUPPORTS or directly REFUTES the claim)
 - 0.5: Mentions the topic or entities but is neutral, ambiguous, or only partially relevant.
 - 0.0: Totally irrelevant to the factual content of the claim.
 """

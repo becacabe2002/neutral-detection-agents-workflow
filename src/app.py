@@ -170,7 +170,9 @@ if st.button("Analyze Factuality", type="primary"):
                     if ev_list:
                         st.markdown("**Pertinent Passages extracted from sources:**")
                         df = format_evidence_table(ev_list)
-                        st.dataframe(df, width='stretch', hide_index=True)
+                        # Hide Excerpt from the main table as it's shown in popovers
+                        display_df = df.drop(columns=['Excerpt'])
+                        st.dataframe(display_df, width='stretch', hide_index=True)
                         
                         for ev in ev_list:
                             with st.popover(f"Excerpt from {ev.source_domain}"):
@@ -210,13 +212,21 @@ if st.button("Analyze Factuality", type="primary"):
                             st.write("None")
 
                 with tab_memory:
-                    # 6. List of strong evidences saved in chromadb
+                    # Show both existing memory and newly persisted evidence
+                    all_evidences = result_state.get("evidences", {}).get(claim.id, [])
+                    existing_memory = [ev for ev in all_evidences if ev.lineage.get("source") == "chromadb"]
                     persisted = result_state.get("persisted_evidences", {}).get(claim.id, [])
+
+                    if existing_memory:
+                        st.info(f"🧠 Found {len(existing_memory)} existing high-quality matches in long-term memory.")
+                        st.dataframe(format_evidence_table(existing_memory), hide_index=True, width='stretch')
+
                     if persisted:
-                        st.success(f"Saved {len(persisted)} high-quality passages to long-term memory (ChromaDB).")
-                        st.dataframe(format_evidence_table(persisted), hide_index=True)
-                    else:
-                        st.info("No new high-quality evidence (score >= 0.7) was persisted for this claim.")
+                        st.success(f"💾 Newly saved {len(persisted)} high-quality passages to long-term memory.")
+                        st.dataframe(format_evidence_table(persisted), hide_index=True, width='stretch')
+                    
+                    if not existing_memory and not persisted:
+                        st.info("No existing memory found and no new high-quality evidence was persisted for this claim.")
 
 st.divider()
 st.caption("Neutral Detection Agents Workflow | Built with LangGraph & Streamlit")

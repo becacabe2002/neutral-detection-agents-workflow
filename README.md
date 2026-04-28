@@ -67,6 +67,7 @@ TAVILY_API_KEY=your_key
 ```bash
 git clone https://github.com/your-username/neutral-detection-agents-workflow.git
 cd neutral-detection-agents-workflow
+pip install uv
 uv sync
 ```
 
